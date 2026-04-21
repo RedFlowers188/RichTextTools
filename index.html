@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>富文本转化工具</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Rich Text Builder</p>
+        <h1>富文本转化工具</h1>
+        <p class="hero-copy">
+          参考 `Text.xlsx` 示例规则：自动处理序号、颜色标记、换行拼接和最终加粗结果。
+        </p>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>颜色配置</h2>
+          <p>【内容（颜色）】中的颜色名称会映射为对应 RGB / Hex。</p>
+        </div>
+        <div class="result-actions color-actions">
+          <button id="addColor" type="button">新增颜色</button>
+          <button id="exportConfig" type="button">导出配置</button>
+          <button id="importConfig" type="button">导入配置</button>
+          <input id="configFileInput" type="file" accept=".json,application/json" hidden>
+        </div>
+        <div class="default-color-card">
+          <label class="check-field">
+            <input id="includeDefaultColor" type="checkbox">
+            <span>最终结果输出默认文本颜色</span>
+          </label>
+          <label class="config-field">
+            <span>默认文本颜色 RGB / Hex</span>
+            <input id="defaultTextColor" value="#ffffff" placeholder="例如：#ffffff">
+          </label>
+        </div>
+        <div class="color-grid" id="colorConfig"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>切换工具</h2>
+          <p>工具 1 适合逐条输入；工具 2 适合整段粘贴；工具 3 支持框选文本后直接上色。</p>
+        </div>
+        <div class="tool-switch">
+          <button class="tool-tab" type="button" data-tool="tool1">工具 1：逐条文本</button>
+          <button class="tool-tab" type="button" data-tool="tool2">工具 2：整段识别</button>
+          <button class="tool-tab is-active" type="button" data-tool="tool3">工具 3：框选上色</button>
+          <button class="tool-tab" type="button" data-tool="tool4">工具 4：反向解析</button>
+          <button class="tool-tab" type="button" data-tool="tool5">工具 5：数值上色</button>
+        </div>
+
+        <div id="tool1Panel" class="tool-panel">
+          <div class="panel-header compact-header">
+            <h2>文本输入</h2>
+            <p>在内容里使用 `【文本（颜色）】` 格式即可自动转化。</p>
+          </div>
+          <div class="tool-actions">
+            <button id="clearTool1Text" class="ghost-button" type="button">清空文本</button>
+          </div>
+          <div class="table-wrap">
+            <table class="text-table">
+              <thead>
+                <tr>
+                  <th class="col-index">序号</th>
+                  <th class="col-content">内容</th>
+                  <th class="col-output">输出</th>
+                  <th class="col-action">操作</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="add-row-area">
+            <button id="addTextRow" class="add-row-button" type="button">+</button>
+            <span>新增一条文本</span>
+          </div>
+        </div>
+
+        <div id="tool2Panel" class="tool-panel">
+          <div class="panel-header compact-header">
+            <h2>文本输入</h2>
+            <p>整段输入内容；如识别到 `1、`、`2、` 等序号，会自动用 `\n` 连接。</p>
+          </div>
+          <div class="tool-actions">
+            <button id="clearTool2Text" class="ghost-button" type="button">清空文本</button>
+          </div>
+          <label class="result-block">
+            <span>整段文本</span>
+            <textarea id="bulkTextInput" placeholder="例如：1、第一段内容。2、第二段包含【重点（红色）】。"></textarea>
+          </label>
+          <label class="result-block tool2-output">
+            <span>输出</span>
+            <textarea id="bulkOutput" readonly></textarea>
+          </label>
+        </div>
+
+        <div id="tool3Panel" class="tool-panel is-active">
+          <div class="panel-header compact-header">
+            <h2>文本输入</h2>
+            <p>输入文本后框选需要变色的文字，再点击下方颜色按钮；生成时会按颜色输出标签。</p>
+          </div>
+          <div class="tool-actions">
+            <button id="clearTool3Text" class="ghost-button" type="button">清空文本</button>
+          </div>
+          <div class="editor-toolbar">
+            <span>选区颜色</span>
+            <div id="editorColorButtons" class="editor-color-buttons"></div>
+            <button id="applyDefaultColor" class="ghost-button" type="button">默认颜色</button>
+          </div>
+          <div
+            id="richTextEditor"
+            class="rich-text-editor"
+            contenteditable="true"
+            data-placeholder="请输入文本，例如：1、不需要的装备可以回收为金币。2、装备回收为不可逆操作。"
+          ></div>
+          <label class="result-block tool2-output">
+            <span>输出</span>
+            <textarea id="richEditorOutput" readonly></textarea>
+          </label>
+        </div>
+
+        <div id="tool4Panel" class="tool-panel">
+          <div class="panel-header compact-header">
+            <h2>富文本反向解析</h2>
+            <p>粘贴已有富文本结果，解析成可视化颜色文本，并可一键带到工具 3 继续编辑。</p>
+          </div>
+          <div class="tool-actions">
+            <button id="parseRichText" class="ghost-button" type="button">解析富文本</button>
+            <button id="sendParsedToTool3" class="ghost-button" type="button">带到工具 3 编辑</button>
+            <button id="clearTool4Text" class="ghost-button" type="button">清空文本</button>
+          </div>
+          <label class="result-block">
+            <span>已有富文本</span>
+            <textarea id="reverseInput" placeholder="例如：<b>1、普通文本\n2、这是<color=#9c221d>红色文本</color></b>"></textarea>
+          </label>
+          <div class="reverse-preview-card">
+            <div class="preview-title">解析预览</div>
+            <div id="reversePreview" class="rich-text-editor reverse-preview"></div>
+          </div>
+          <label class="result-block tool2-output">
+            <span>解析后的工具 3 HTML</span>
+            <textarea id="reverseOutput" readonly></textarea>
+          </label>
+        </div>
+
+        <div id="tool5Panel" class="tool-panel">
+          <div class="panel-header compact-header">
+            <h2>数值自动上色</h2>
+            <p>适合技能文本：自动识别正文数值并上色；每段开头的 `1、`、`2.`、`3．` 会作为序号跳过。</p>
+          </div>
+          <div class="tool-actions split-actions">
+            <label class="inline-config-field">
+              <span>数值颜色</span>
+              <input id="numberColorInput" value="#a84f2f" placeholder="例如：#a84f2f">
+            </label>
+            <button id="clearTool5Text" class="ghost-button" type="button">清空文本</button>
+          </div>
+          <div class="effect-library">
+            <div class="effect-library-header">
+              <button id="toggleEffectLibrary" class="effect-toggle-button" type="button">
+                <span>效果库</span>
+                <small id="effectRuleCount">0 条</small>
+              </button>
+              <button id="addEffectRule" class="ghost-button" type="button">新增效果</button>
+            </div>
+            <div id="effectRuleList" class="effect-rule-list is-collapsed"></div>
+          </div>
+          <label class="result-block">
+            <span>技能文本</span>
+            <textarea id="numberTextInput" placeholder="例如：1、造成120%攻击伤害，并额外附加300点真实伤害。2、冷却时间减少1.5秒。"></textarea>
+          </label>
+          <label class="result-block tool2-output">
+            <span>输出</span>
+            <textarea id="numberOutput" readonly></textarea>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>最终结果</h2>
+          <p>自动拼接所有非空内容，默认整体加粗，无尾部多余换行。</p>
+        </div>
+        <div class="result-actions">
+          <button id="generateResult" type="button">生成结果</button>
+          <button id="copyFinalText" type="button">复制最终结果文本</button>
+        </div>
+        <label class="result-block">
+          <span>最终结果（标签文本）</span>
+          <textarea id="finalText" readonly></textarea>
+        </label>
+        <div class="preview-settings">
+          <label class="config-field">
+            <span>预览底板颜色 RGB / Hex</span>
+            <input id="previewBackgroundColor" value="#fffaf0" placeholder="例如：#1f1f1f">
+          </label>
+        </div>
+        <div class="preview-card">
+          <div class="preview-title">富文本预览</div>
+          <div id="richPreview" class="rich-preview"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
