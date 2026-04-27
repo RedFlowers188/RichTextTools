@@ -8,6 +8,7 @@ const COLOR_STORAGE_KEY = "rich-text-tool-colors";
 const DEFAULT_COLOR_SETTINGS_KEY = "rich-text-tool-default-color";
 const PREVIEW_SETTINGS_KEY = "rich-text-tool-preview-settings";
 const TEXT_CONTENT_STORAGE_KEY = "rich-text-tool-text-content";
+const ACTIVE_TOOL_STORAGE_KEY = "rich-text-tool-active-tool";
 
 const starterTexts = [
   "不需要的装备可以回收为金币。",
@@ -193,10 +194,20 @@ function persistTextContent() {
   );
 }
 
+function loadActiveTool() {
+  const savedTool = window.localStorage.getItem(ACTIVE_TOOL_STORAGE_KEY);
+  const allowedTools = new Set(["tool1", "tool2", "tool3", "tool4", "tool5"]);
+  return allowedTools.has(savedTool) ? savedTool : "tool3";
+}
+
+function persistActiveTool() {
+  window.localStorage.setItem(ACTIVE_TOOL_STORAGE_KEY, state.activeTool);
+}
+
 const savedTextContent = loadTextContent();
 
 const state = {
-  activeTool: "tool3",
+  activeTool: loadActiveTool(),
   colors: loadStoredColors(),
   defaultTextColor: loadDefaultColorSettings(),
   previewSettings: loadPreviewSettings(),
@@ -1195,6 +1206,7 @@ toolTabs.forEach((tab) => {
     syncNumberTextFromInput();
     syncNumberColorFromInput();
     state.activeTool = event.currentTarget.dataset.tool;
+    persistActiveTool();
     render();
   });
 });
